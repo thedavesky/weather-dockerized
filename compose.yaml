@@ -34,6 +34,8 @@ services:
     networks:
       - backend
     restart: unless-stopped
+    volumes:
+      - ./docker/mariadb/:/docker-entrypoint-initdb.d
 
 networks:
   backend:
