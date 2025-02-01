@@ -1,0 +1,26 @@
+services:
+  nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - ./app:/var/www/html
+    ports:
+      - "80:80"
+    networks:
+      - backend
+    depends_on:
+      - php-fpm
+    restart: unless-stopped
+
+  php-fpm:
+    build:
+      context: ./php-fpm
+    volumes:
+      - ./app:/var/www/html
+    networks:
+      - backend
+    restart: unless-stopped
+
+networks:
+  backend:
+    driver: bridge
