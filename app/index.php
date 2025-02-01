@@ -1,148 +1,243 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
-    <title>Weather Data Plot</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wizualizacja Danych Meteorologicznych</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      padding-top: 20px;
+      background-color: #f8f9fa;
+    }
+    .spinner-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.7);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
 <body>
-    <h1>Weather Data Plot</h1>
-    <div>
-        <label for="start_date">Start Date:</label>
-        <input type="date" id="start_date" value="2024-01-01" min="2024-01-01" max="2024-05-18">
-        <label for="end_date">End Date:</label>
-        <input type="date" id="end_date" value="2024-01-31" min="2024-01-01" max="2024-05-18">
-        <button id="plot_button">Plot Data</button>
-    </div>
-    <div>
-        <canvas id="temperature_chart" width="400" height="200"></canvas>
-        <canvas id="humidity_chart" width="400" height="200"></canvas>
-        <canvas id="precipitation_chart" width="400" height="200"></canvas>
-        <canvas id="wind_speed_chart" width="400" height="200"></canvas>
+  <div class="container">
+    <h1 class="mb-4 text-center">Wizualizacja Danych Meteorologicznych</h1>
+    
+    <!-- Panel wyboru zakresu dat -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <form id="dataForm" class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label for="start_date" class="form-label">Data początkowa:</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="2024-01-01" min="2024-01-01" max="2024-05-18" required>
+          </div>
+          <div class="col-md-4">
+            <label for="end_date" class="form-label">Data końcowa:</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="2024-01-31" min="2024-01-01" max="2024-05-18" required>
+          </div>
+          <div class="col-md-4">
+            <button type="submit" id="plot_button" class="btn btn-primary w-100">Wczytaj dane i narysuj wykresy</button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <script>
-        // Get the data from the PHP file
-        function getData() {
-            var startDate = document.getElementById("start_date").value;
-            var endDate = document.getElementById("end_date").value;
-            var url = "weather_data.php?start_date=" + startDate + "&end_date=" + endDate;
-            fetch(url)
-                .then(response => response.json())
-                .then(data => plotData(data));
+    <!-- Miejsce na wykresy -->
+    <div class="row">
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">Temperatura (°C)</div>
+          <div class="card-body">
+            <canvas id="temperature_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">Wilgotność (%)</div>
+          <div class="card-body">
+            <canvas id="humidity_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">Opady (mm)</div>
+          <div class="card-body">
+            <canvas id="precipitation_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">Prędkość wiatru (km/h)</div>
+          <div class="card-body">
+            <canvas id="wind_speed_chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spinner podczas ładowania -->
+  <div id="spinner" class="spinner-overlay" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Ładowanie...</span>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS (wymaga Poppera) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Skrypt do obsługi wykresów i pobierania danych -->
+  <script>
+    // Globalne zmienne dla wykresów
+    let temperatureChart, humidityChart, precipitationChart, windSpeedChart;
+
+    // Funkcja do tworzenia lub aktualizacji wykresu
+    function renderChart(chartInstance, ctx, config) {
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+      return new Chart(ctx, config);
+    }
+
+    // Funkcja pobierająca dane i rysująca wykresy
+    async function fetchAndRenderData(event) {
+      event.preventDefault();
+      
+      // Wyświetl spinner
+      document.getElementById('spinner').style.display = 'flex';
+      
+      const startDate = document.getElementById("start_date").value;
+      const endDate = document.getElementById("end_date").value;
+      const url = `weather_data.php?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Błąd sieci: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error('Niepoprawny format danych');
         }
 
-        // Plot the data
-        function plotData(data) {
-            // Create the temperature chart
-            var temperatureChart = document.getElementById("temperature_chart").getContext("2d");
-            var temperatureData = data.map(function(row) {
-                return row.Temperature_C;
-            });
-            var temperatureLabels = data.map(function(row) {
-                return row.Date_Time;
-            });
-            new Chart(temperatureChart, {
-                type: "line",
-                data: {
-                    labels: temperatureLabels,
-                    datasets: [{
-                        label: "Temperature (C)",
-                        data: temperatureData,
-                        backgroundColor: "rgba(255, 99, 132, 0.2)",
-                        borderColor: "rgba(255, 99, 132, 1)",
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
+        // Przygotuj etykiety (daty) oraz dane dla wykresów
+        const labels = data.map(row => row.Date_Time);
+        const temperatureData = data.map(row => parseFloat(row.Temperature_C));
+        const humidityData = data.map(row => parseFloat(row.Humidity_pct));
+        const precipitationData = data.map(row => parseFloat(row.Precipitation_mm));
+        const windSpeedData = data.map(row => parseFloat(row.Wind_Speed_kmh));
 
-            // Create the humidity chart
-            var humidityChart = document.getElementById("humidity_chart").getContext("2d");
-            var humidityData = data.map(function(row) {
-                return row.Humidity_pct;
-            });
-            new Chart(humidityChart, {
-                type: "line",
-                data: {
-                    labels: temperatureLabels,
-                    datasets: [{
-                        label: "Humidity (%)",
-                        data: humidityData,
-                        backgroundColor: "rgba(54, 162, 235, 0.2)",
-                        borderColor: "rgba(54, 162, 235, 1)",
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
+        // Konfiguracja wykresów
+        const commonOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        };
 
-            // Create the precipitation chart
-            var precipitationChart = document.getElementById("precipitation_chart").getContext("2d");
-            var precipitationData = data.map(function(row) {
-                return row.Precipitation_mm;
-            });
-            new Chart(precipitationChart, {
-                type: "line",
-                data: {
-                    labels: temperatureLabels,
-                    datasets: [{
-                        label: "Precipitation (mm)",
-                        data: precipitationData,
-                        backgroundColor: "rgba(255, 206, 86, 0.2)",
-                        borderColor: "rgba(255, 206, 86, 1)",
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
+        // Wykres temperatury
+        const temperatureConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Temperatura (°C)',
+              data: temperatureData,
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: commonOptions
+        };
+        const tempCtx = document.getElementById('temperature_chart').getContext('2d');
+        temperatureChart = renderChart(temperatureChart, tempCtx, temperatureConfig);
 
-            // Create the wind speed chart
-            var windSpeedChart = document.getElementById("wind_speed_chart").getContext("2d");
-            var windSpeedData = data.map(function(row) {
-                return row.Wind_Speed_kmh;
-            });
-            new Chart(windSpeedChart, {
-                type: "line",
-                data: {
-                    labels: temperatureLabels,
-                    datasets: [{
-                        label: "Wind Speed (km/h)",
-                        data: windSpeedData,
-                        backgroundColor: "rgba(75, 192, 192, 0.2)",
-                        borderColor: "rgba(75, 192, 192, 1)",
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
+        // Wykres wilgotności
+        const humidityConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Wilgotność (%)',
+              data: humidityData,
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: commonOptions
+        };
+        const humCtx = document.getElementById('humidity_chart').getContext('2d');
+        humidityChart = renderChart(humidityChart, humCtx, humidityConfig);
 
-        // Add event listener to the plot button
-        document.getElementById("plot_button").addEventListener("click", getData);
-    </script>
+        // Wykres opadów
+        const precipitationConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Opady (mm)',
+              data: precipitationData,
+              backgroundColor: 'rgba(255, 206, 86, 0.2)',
+              borderColor: 'rgba(255, 206, 86, 1)',
+              borderWidth: 1,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: commonOptions
+        };
+        const precCtx = document.getElementById('precipitation_chart').getContext('2d');
+        precipitationChart = renderChart(precipitationChart, precCtx, precipitationConfig);
+
+        // Wykres prędkości wiatru
+        const windSpeedConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Prędkość wiatru (km/h)',
+              data: windSpeedData,
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: commonOptions
+        };
+        const windCtx = document.getElementById('wind_speed_chart').getContext('2d');
+        windSpeedChart = renderChart(windSpeedChart, windCtx, windSpeedConfig);
+
+      } catch (error) {
+        console.error('Wystąpił błąd:', error);
+        alert("Wystąpił błąd podczas pobierania danych. Sprawdź konsolę przeglądarki dla szczegółów.");
+      } finally {
+        // Ukryj spinner
+        document.getElementById('spinner').style.display = 'none';
+      }
+    }
+
+    document.getElementById('dataForm').addEventListener('submit', fetchAndRenderData);
+  </script>
 </body>
 </html>
