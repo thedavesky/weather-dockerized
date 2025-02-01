@@ -1,7 +1,7 @@
 services:
   nginx:
     build:
-      context: ./nginx
+      context: ./docker/nginx
     volumes:
       - ./app:/var/www/html
     ports:
@@ -15,7 +15,7 @@ services:
 
   php-fpm:
     build:
-      context: ./php-fpm
+      context: ./docker/php-fpm
     volumes:
       - ./app:/var/www/html
     networks:
