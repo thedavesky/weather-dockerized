@@ -35,11 +35,11 @@
         <form id="dataForm" class="row g-3 align-items-end">
           <div class="col-md-4">
             <label for="start_date" class="form-label">Data początkowa:</label>
-            <input type="date" class="form-control" id="start_date" name="start_date" value="2024-01-01" min="2024-01-01" max="2024-05-18" required>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="2024-01-01" min="2019-01-01" max="2024-08-20" required>
           </div>
           <div class="col-md-4">
             <label for="end_date" class="form-label">Data końcowa:</label>
-            <input type="date" class="form-control" id="end_date" name="end_date" value="2024-01-31" min="2024-01-01" max="2024-05-18" required>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="2024-01-31" min="2019-01-01" max="2024-08-20" required>
           </div>
           <div class="col-md-4">
             <button type="submit" id="plot_button" class="btn btn-primary w-100">Wczytaj dane i narysuj wykresy</button>
@@ -48,42 +48,50 @@
       </div>
     </div>
 
-    <!-- Miejsce na wykresy -->
-    <div class="row">
-      <div class="col-md-6 mb-4">
-        <div class="card">
-          <div class="card-header">Temperatura (°C)</div>
-          <div class="card-body">
-            <canvas id="temperature_chart"></canvas>
-          </div>
+  <!-- Miejsce na wykresy -->
+  <div class="row">
+    <div class="col-md-12 mb-4" >
+      <div class="card" style="height: 500px">
+        <div class="card-header">Temperatura (°C)</div>
+        <div class="card-body">
+          <canvas id="temperature_chart"></canvas>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
-        <div class="card">
-          <div class="card-header">Wilgotność (%)</div>
-          <div class="card-body">
-            <canvas id="humidity_chart"></canvas>
-          </div>
+    </div>
+    <div class="col-md-12 mb-4" >
+      <div class="card" style="height: 500px">
+        <div class="card-header">Wilgotność (%)</div>
+        <div class="card-body">
+          <canvas id="humidity_chart"></canvas>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
-        <div class="card">
-          <div class="card-header">Opady (mm)</div>
-          <div class="card-body">
-            <canvas id="precipitation_chart"></canvas>
-          </div>
+    </div>
+    <div class="col-md-12 mb-4" >
+      <div class="card" style="height: 500px">
+        <div class="card-header">Opady (mm)</div>
+        <div class="card-body">
+          <canvas id="precipitation_chart"></canvas>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
-        <div class="card">
-          <div class="card-header">Prędkość wiatru (km/h)</div>
-          <div class="card-body">
-            <canvas id="wind_speed_chart"></canvas>
-          </div>
+    </div>
+    <div class="col-md-12 mb-4" >
+      <div class="card" style="height: 500px">
+        <div class="card-header">Prędkość wiatru (km/h)</div>
+        <div class="card-body">
+          <canvas id="wind_speed_chart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-12 mb-4" >
+      <div class="card" style="height: 500px">
+        <div class="card-header">Ciśnienie (hPa)</div>
+        <div class="card-body">
+          <canvas id="pressure_chart"></canvas>
         </div>
       </div>
     </div>
   </div>
+
 
   <!-- Spinner podczas ładowania -->
   <div id="spinner" class="spinner-overlay" style="display: none;">
@@ -98,7 +106,7 @@
   <!-- Skrypt do obsługi wykresów i pobierania danych -->
   <script>
     // Globalne zmienne dla wykresów
-    let temperatureChart, humidityChart, precipitationChart, windSpeedChart;
+    let temperatureChart, humidityChart, precipitationChart, windSpeedChart, pressureChart;
 
     // Funkcja do tworzenia lub aktualizacji wykresu
     function renderChart(chartInstance, ctx, config) {
@@ -131,11 +139,12 @@
         }
 
         // Przygotuj etykiety (daty) oraz dane dla wykresów
-        const labels = data.map(row => row.Date_Time);
-        const temperatureData = data.map(row => parseFloat(row.Temperature_C));
-        const humidityData = data.map(row => parseFloat(row.Humidity_pct));
-        const precipitationData = data.map(row => parseFloat(row.Precipitation_mm));
-        const windSpeedData = data.map(row => parseFloat(row.Wind_Speed_kmh));
+        const labels = data.map(row => row.DATE_VALID_STD);
+        const temperatureData = data.map(row => parseFloat(row.AVG_TEMPERATURE_AIR_2M_C));
+        const humidityData = data.map(row => parseFloat(row.AVG_HUMIDITY_RELATIVE_2M_PCT));
+        const precipitationData = data.map(row => parseFloat(row.TOT_PRECIPITATION_MM));
+        const windSpeedData = data.map(row => parseFloat(row.AVG_WIND_SPEED_10M_KPH));
+        const pressureData = data.map(row => parseFloat(row.AVG_PRESSURE_2M_MB));
 
         // Konfiguracja wykresów
         const commonOptions = {
@@ -227,6 +236,27 @@
         };
         const windCtx = document.getElementById('wind_speed_chart').getContext('2d');
         windSpeedChart = renderChart(windSpeedChart, windCtx, windSpeedConfig);
+
+                // Wykres ciśnienia
+        const pressureConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Ciśnienie (hPa)',
+              data: pressureData,
+              backgroundColor: 'rgba(153, 102, 255, 0.2)',
+              borderColor: 'rgba(153, 102, 255, 1)',
+              borderWidth: 1,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: commonOptions
+        };
+        const pressCtx = document.getElementById('pressure_chart').getContext('2d');
+        pressureChart = renderChart(pressureChart, pressCtx, pressureConfig);
+
 
       } catch (error) {
         console.error('Wystąpił błąd:', error);

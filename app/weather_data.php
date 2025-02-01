@@ -55,10 +55,10 @@ try {
 }
 
 // Przygotowanie i wykonanie zapytania – wykorzystanie przygotowanych zapytań PDO
-$sql = "SELECT Date_Time, Temperature_C, Humidity_pct, Precipitation_mm, Wind_Speed_kmh 
+$sql = "SELECT DATE_VALID_STD, AVG_TEMPERATURE_AIR_2M_C, AVG_HUMIDITY_RELATIVE_2M_PCT, AVG_PRESSURE_2M_MB, AVG_WIND_SPEED_10M_KPH, TOT_PRECIPITATION_MM
         FROM weather_data 
-        WHERE Date_Time BETWEEN :start_date AND :end_date 
-        ORDER BY Date_Time ASC";
+        WHERE DATE_VALID_STD BETWEEN :start_date AND :end_date 
+        ORDER BY DATE_VALID_STD ASC";
 $stmt = $pdo->prepare($sql);
 
 try {
