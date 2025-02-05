@@ -29,74 +29,82 @@
   <div class="container">
     <h1 class="mb-4 text-center">Wizualizacja Danych Meteorologicznych</h1>
     
-    <!-- Panel wyboru zakresu dat -->
+    <!-- Panel wyboru zakresu dat oraz miasta -->
     <div class="card mb-4">
       <div class="card-body">
+        <!-- Zmieniamy layout formularza na 4 kolumny -->
         <form id="dataForm" class="row g-3 align-items-end">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="start_date" class="form-label">Data początkowa:</label>
             <input type="date" class="form-control" id="start_date" name="start_date" value="2024-01-01" min="2019-01-01" max="2024-08-20" required>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="end_date" class="form-label">Data końcowa:</label>
             <input type="date" class="form-control" id="end_date" name="end_date" value="2024-01-31" min="2019-01-01" max="2024-08-20" required>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
+            <label for="city" class="form-label">Miasto:</label>
+            <select id="city" name="city" class="form-control" required>
+              <option value="Warszawa">Warszawa</option>
+              <option value="Krakow">Krakow</option>
+            </select>
+          </div>
+          <div class="col-md-3">
             <button type="submit" id="plot_button" class="btn btn-primary w-100">Wczytaj dane i narysuj wykresy</button>
           </div>
         </form>
       </div>
     </div>
 
-  <!-- Miejsce na wykresy -->
-  <div class="row">
-    <div class="col-md-12 mb-4" >
-      <div class="card" style="height: 500px">
-        <div class="card-header">Temperatura (°C)</div>
-        <div class="card-body">
-          <canvas id="temperature_chart"></canvas>
+    <!-- Miejsce na wykresy -->
+    <div class="row">
+      <div class="col-md-12 mb-4">
+        <div class="card" style="height: 500px">
+          <div class="card-header">Temperatura (°C)</div>
+          <div class="card-body">
+            <canvas id="temperature_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12 mb-4">
+        <div class="card" style="height: 500px">
+          <div class="card-header">Wilgotność (%)</div>
+          <div class="card-body">
+            <canvas id="humidity_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12 mb-4">
+        <div class="card" style="height: 500px">
+          <div class="card-header">Opady (mm)</div>
+          <div class="card-body">
+            <canvas id="precipitation_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12 mb-4">
+        <div class="card" style="height: 500px">
+          <div class="card-header">Prędkość wiatru (km/h)</div>
+          <div class="card-body">
+            <canvas id="wind_speed_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12 mb-4">
+        <div class="card" style="height: 500px">
+          <div class="card-header">Ciśnienie (hPa)</div>
+          <div class="card-body">
+            <canvas id="pressure_chart"></canvas>
+          </div>
         </div>
       </div>
     </div>
-    <div class="col-md-12 mb-4" >
-      <div class="card" style="height: 500px">
-        <div class="card-header">Wilgotność (%)</div>
-        <div class="card-body">
-          <canvas id="humidity_chart"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-12 mb-4" >
-      <div class="card" style="height: 500px">
-        <div class="card-header">Opady (mm)</div>
-        <div class="card-body">
-          <canvas id="precipitation_chart"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-12 mb-4" >
-      <div class="card" style="height: 500px">
-        <div class="card-header">Prędkość wiatru (km/h)</div>
-        <div class="card-body">
-          <canvas id="wind_speed_chart"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-12 mb-4" >
-      <div class="card" style="height: 500px">
-        <div class="card-header">Ciśnienie (hPa)</div>
-        <div class="card-body">
-          <canvas id="pressure_chart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
 
-
-  <!-- Spinner podczas ładowania -->
-  <div id="spinner" class="spinner-overlay" style="display: none;">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Ładowanie...</span>
+    <!-- Spinner podczas ładowania -->
+    <div id="spinner" class="spinner-overlay" style="display: none;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Ładowanie...</span>
+      </div>
     </div>
   </div>
 
@@ -125,7 +133,8 @@
       
       const startDate = document.getElementById("start_date").value;
       const endDate = document.getElementById("end_date").value;
-      const url = `weather_data.php?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+      const city = document.getElementById("city").value;
+      const url = `weather_data.php?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&city=${encodeURIComponent(city)}`;
 
       try {
         const response = await fetch(url);
@@ -237,7 +246,7 @@
         const windCtx = document.getElementById('wind_speed_chart').getContext('2d');
         windSpeedChart = renderChart(windSpeedChart, windCtx, windSpeedConfig);
 
-                // Wykres ciśnienia
+        // Wykres ciśnienia
         const pressureConfig = {
           type: 'line',
           data: {
@@ -256,7 +265,6 @@
         };
         const pressCtx = document.getElementById('pressure_chart').getContext('2d');
         pressureChart = renderChart(pressureChart, pressCtx, pressureConfig);
-
 
       } catch (error) {
         console.error('Wystąpił błąd:', error);

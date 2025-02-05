@@ -17,9 +17,10 @@ function returnError(string $message, int $code = 400): void {
 // Pobieranie parametrów daty z zapytania GET
 $start_date = $_GET['start_date'] ?? null;
 $end_date   = $_GET['end_date'] ?? null;
+$city       = $_GET['city'] ?? null;
 
-if (!$start_date || !$end_date) {
-    returnError('Brak wymaganych parametrów daty.');
+if (!$start_date || !$end_date || !$city) {
+    returnError('Brak wymaganych parametrów: data początkowa, data końcowa oraz miasto.');
 }
 
 // Walidacja formatu daty przy użyciu DateTime
@@ -33,6 +34,11 @@ if (!$startDateObj || $startDateObj->format($dateFormat) !== $start_date) {
 
 if (!$endDateObj || $endDateObj->format($dateFormat) !== $end_date) {
     returnError('Niepoprawny format daty końcowej. Użyj formatu YYYY-MM-DD.');
+}
+
+// Walidacja wybranego miasta – dozwolone tylko Warszawa lub Krakow
+if ($city !== 'Warszawa' && $city !== 'Krakow') {
+    returnError('Niepoprawne miasto. Dozwolone wartości: Warszawa lub Krakow.');
 }
 
 // Konfiguracja połączenia z bazą danych
@@ -58,13 +64,15 @@ try {
 $sql = "SELECT DATE_VALID_STD, AVG_TEMPERATURE_AIR_2M_C, AVG_HUMIDITY_RELATIVE_2M_PCT, AVG_PRESSURE_2M_MB, AVG_WIND_SPEED_10M_KPH, TOT_PRECIPITATION_MM
         FROM weather_data 
         WHERE DATE_VALID_STD BETWEEN :start_date AND :end_date 
+          AND CITY_NAME = :city
         ORDER BY DATE_VALID_STD ASC";
 $stmt = $pdo->prepare($sql);
 
 try {
     $stmt->execute([
-        ':start_date' => $start_date . ' 00:00:00',
-        ':end_date'   => $end_date . ' 23:59:59',
+        ':start_date' => $start_date,  // Jeśli w tabeli DATE_VALID_STD jest typu DATE, wystarczy przekazać datę
+        ':end_date'   => $end_date,
+        ':city'       => $city,
     ]);
     $data = $stmt->fetchAll();
 } catch (PDOException $e) {
