@@ -1,1 +1,0 @@
-- Select for city: Krakov of Warsaw
