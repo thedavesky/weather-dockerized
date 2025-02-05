@@ -2,15 +2,17 @@ services:
   nginx:
     build:
       context: ./docker/nginx
-    volumes:
-      - ./app:/var/www/html
     ports:
       - "80:80"
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      php-fpm:
+        condition: service_started
+      mariadb:
+        condition: service_healthy
     networks:
       - backend
-    depends_on:
-      - php-fpm
-      - mariadb
     restart: unless-stopped
 
   php-fpm:
@@ -18,10 +20,11 @@ services:
       context: ./docker/php-fpm
     volumes:
       - ./app:/var/www/html
+    depends_on:
+      mariadb:
+        condition: service_healthy
     networks:
       - backend
-    depends_on:
-      - mariadb
     restart: unless-stopped
 
   mariadb:
@@ -31,11 +34,17 @@ services:
       MARIADB_DATABASE: weather
       MARIADB_USER: weather
       MARIADB_PASSWORD: password
+    volumes:
+      - ./docker/mariadb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - backend
     restart: unless-stopped
-    volumes:
-      - ./docker/mariadb/:/docker-entrypoint-initdb.d
 
 networks:
   backend:
