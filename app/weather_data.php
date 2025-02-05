@@ -70,7 +70,7 @@ $stmt = $pdo->prepare($sql);
 
 try {
     $stmt->execute([
-        ':start_date' => $start_date,  // Jeśli w tabeli DATE_VALID_STD jest typu DATE, wystarczy przekazać datę
+        ':start_date' => $start_date,
         ':end_date'   => $end_date,
         ':city'       => $city,
     ]);
